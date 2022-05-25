@@ -30,8 +30,6 @@ def get_dataset(name, sparse=True, feat_str="deg+ak3+reall", root=None, pruning_
     centrality = feat_str.find("cent") >= 0
     coord = feat_str.find("coord") >= 0
     
-    # pdb.set_trace()
-    # degree = False
     pre_transform = FeatureExpander(
         degree=degree, onehot_maxdeg=onehot_maxdeg, AK=k,
         centrality=centrality, remove_edges=remove_edges,

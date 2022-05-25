@@ -1,25 +1,23 @@
 import argparse
-from res_gcn import GINNet, GCNNet, GATNet
-from model import CausalGCN, CausalGIN, CausalGAT
-from itertools import product
+from model import CausalGCN, CausalGIN, CausalGAT, GINNet, GCNNet, GATNet
 import numpy as np
 import random
 import torch
+from itertools import product
 
-
-data_num=2000
-node=15
-max_degree=10
-noise=0.1
 def parse_args():
     
     str2bool = lambda x: x.lower() == "true"
     parser = argparse.ArgumentParser()
+    
     parser.add_argument('--step_size', type=float, default=0.001)
+    parser.add_argument('--min_lr', type=float, default=1e-6)
     #################### toy example #######################
+    parser.add_argument('--pretrain', type=int, default=30)
     parser.add_argument('--data_num', type=int, default=2000)
     parser.add_argument('--node_num', type=int, default=15)
     parser.add_argument('--max_degree', type=int, default=10)
+    parser.add_argument('--feature_dim', type=int, default=-1)
     parser.add_argument('--noise', type=float, default=0.1)
     parser.add_argument('--num_classes', type=int, default=4)
     parser.add_argument('--shape_num', type=int, default=1)
@@ -29,8 +27,7 @@ def parse_args():
 
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--feature_dim', type=int, default=-1)
-
+    
     parser.add_argument('--the', type=int, default=0)
     parser.add_argument('--with_random', type=str2bool, default=True)
     parser.add_argument('--eval_random', type=str2bool, default=False)
@@ -40,7 +37,6 @@ def parse_args():
     parser.add_argument('--without_node_attention', type=str2bool, default=False)
     parser.add_argument('--without_edge_attention', type=str2bool, default=False)
     
-
     parser.add_argument('--k', type=int, default=3)
     #################### Causal GNN settings #######################
     parser.add_argument('--layers', type=int, default=3)
@@ -77,11 +73,14 @@ def print_args(args, str_num=80):
         print(arg + '.' * (str_num - len(arg) - len(str(val))) + str(val))
     print()
 
+
 def setup_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def get_model(args):
 
@@ -103,7 +102,6 @@ def get_model(args):
     def model_func6(num_features, num_classes):
         return CausalGAT(num_features, num_classes, args) 
 
-    
     if args.model == "GCN":
         model_func = model_func1
     elif args.model == "GIN":
@@ -119,7 +117,6 @@ def get_model(args):
     else:
         assert False
     return model_func
-
 
 def create_n_filter_triples(datasets, 
                             feat_strs=['deg+odeg100'], 

@@ -1,5 +1,4 @@
 from functools import partial
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,18 +7,18 @@ from torch_geometric.nn import global_mean_pool, global_add_pool, GINConv, GATCo
 from gcn_conv import GCNConv
 import random
 import pdb
-from torch_geometric.utils.convert import to_networkx
-import networkx as nx
-from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
-import os
 
 class CausalGCN(torch.nn.Module):
     """GCN with BN and residual connection."""
     def __init__(self, num_features,
                        num_classes, args,
-                gfn=False, collapse=False, residual=False,
-                res_branch="BNConvReLU", global_pool="sum", dropout=0, 
-                edge_norm=True):
+                       gfn=False, 
+                       collapse=False, 
+                       residual=False,
+                       res_branch="BNConvReLU", 
+                       global_pool="sum", 
+                       dropout=0, 
+                       edge_norm=True):
         super(CausalGCN, self).__init__()
         num_conv_layers = args.layers
         hidden = args.hidden
@@ -82,7 +81,7 @@ class CausalGCN(torch.nn.Module):
                 torch.nn.init.constant_(m.weight, 1)
                 torch.nn.init.constant_(m.bias, 0.0001)
 
-    def forward(self, data, eval_random=True, vis=False):
+    def forward(self, data, eval_random=True):
 
         x = data.x if data.x is not None else data.feat
         edge_index, batch = data.edge_index, data.batch
@@ -231,7 +230,7 @@ class CausalGIN(torch.nn.Module):
                 torch.nn.init.constant_(m.weight, 1)
                 torch.nn.init.constant_(m.bias, 0.0001)
 
-    def forward(self, data, eval_random=True, vis=False, train_type="base"):
+    def forward(self, data, eval_random=True, train_type="base"):
 
         x = data.x if data.x is not None else data.feat
         edge_index, batch = data.edge_index, data.batch
@@ -251,34 +250,7 @@ class CausalGIN(torch.nn.Module):
         node_weight_c = node_att[:, 0]
         node_weight_o = node_att[:, 1]
         
-        if vis:
-            '''
-            BA + Cycle   48
-            BA + Grid    50
-            BA + Diamond 82
-            BA + House   60
-            
-            Tr + Cycle   78
-            Tr + Grid    87
-            Tr + Diamond 98
-            Tr + House   89
-            
-            '''
-            # index = [48, 50, 98, 89]
-            # index = [82, 60, 78, 87]
-            # node_attention = [node_weight_c, node_weight_o]
-            # edge_attention = [edge_weight_c, edge_weight_o]
-            # plot_attention_graph(data, [node_weight_c, node_weight_o], [edge_weight_c, edge_weight_o], index=87)
-            path = "visual-{}-bias{}".format(self.args.model, self.args.bias[0])
-            folder = os.path.exists(path)
-            if not folder:
-                os.makedirs(path)
-            for i in range(80):
-                print("plot num:{}".format(i))
-                plot_attention_graph(data, node_weight_o, edge_weight_o, path, index=i)
-
-            return None, None, None
-
+        
         xc = node_weight_c.view(-1, 1) * x
         xo = node_weight_o.view(-1, 1) * x
         xc = F.relu(self.context_convs(self.bnc(xc), edge_index, edge_weight_c))
@@ -343,130 +315,6 @@ class CausalGIN(torch.nn.Module):
         x = self.fc2_co(x)
         x_logis = F.log_softmax(x, dim=-1)
         return x_logis
-
-
-
-def plot_four_attention_graph(data, node_attention, edge_attention, index_list):
-
-    plt.figure(figsize=(8, 10))
-    plt.axis('off')
-    plt.subplots_adjust(wspace=0.1, hspace=0.05)
-    plt.subplot(221)
-    plot_one_graph(data, node_attention, edge_attention, index_list[0])
-    plt.subplot(222)
-    plot_one_graph(data, node_attention, edge_attention, index_list[1])
-    plt.subplot(223)
-    plot_one_graph(data, node_attention, edge_attention, index_list[2])
-    plt.subplot(224)
-    plot_one_graph(data, node_attention, edge_attention, index_list[3])
-    plt.tight_layout()
-    plt.savefig("vis-paper{}.png".format(0))
-    plt.close()
-
-def plot_one_graph(data, node_attention, edge_attention, index):
-
-    data_list = data.to_data_list()
-    num_graphs = len(data_list)
-    total_nodes = 0
-    total_edges = 0
-    for g in data_list[:index]:
-        total_nodes += g.num_nodes
-        total_edges += g.num_edges
-    
-    graph = data_list[index]
-    node_num = graph.num_nodes
-    edge_num = graph.num_edges
-    node_att_o = node_attention[1][total_nodes:total_nodes+node_num]
-    edge_att_o = edge_attention[1][total_edges:total_edges+edge_num]
-    edge_color = edge_att_o.tolist()
-    node_color = node_att_o.tolist()
-    G = to_networkx(graph)
-    options = {"edgecolors": "tab:grey", "alpha": 1.0}
-    nx.draw(G, 
-            pos=nx.kamada_kawai_layout(G),
-            cmap="Blues",
-            node_color=node_color,
-            edge_color="grey",
-            width=edge_color,
-            node_size=200, 
-            arrows=False,
-            **options)
-
-def plot_attention_graph(data, node_attention, edge_attention, path, index):
-
-    data_list = data.to_data_list()
-    num_graphs = len(data_list)
-    total_nodes = 0
-    total_edges = 0
-    for g in data_list[:index]:
-        total_nodes += g.num_nodes
-        total_edges += g.num_edges
-    
-    graph = data_list[index]
-    node_num = graph.num_nodes
-    edge_num = graph.num_edges
-    node_att_o = node_attention[total_nodes:total_nodes+node_num]
-    edge_att_o = edge_attention[total_edges:total_edges+edge_num]
-    
-    node_att_o = F.softmax(node_att_o)
-    edge_color = edge_att_o.tolist()
-    # pdb.set_trace()
-    node_color = node_att_o.tolist()
-    G = to_networkx(graph)
-    plt.figure(figsize=(7, 7))
-    plt.axis('off')
-    options = {"edgecolors": "tab:grey", "alpha": 1.0}
-    # pdb.set_trace()
-    nx.draw(G, pos=nx.kamada_kawai_layout(G),
-               cmap="Blues",
-               node_color=node_color,
-               edge_color="grey",
-               vmin = node_att_o.max() * 0.5,
-               vmax = node_att_o.max(),
-               width=edge_color,
-               node_size=200, 
-               arrows=False,
-               **options)
-    
-    plt.tight_layout()
-    plt.savefig(path + "/causal-vis-{}.png".format(index))
-    plt.close()
-
-# def plot_attention_graph(data, node_attention, edge_attention, index):
-
-#     data_list = data.to_data_list()
-#     num_graphs = len(data_list)
-#     total_nodes = 0
-#     total_edges = 0
-#     for g in data_list[:index]:
-#         total_nodes += g.num_nodes
-#         total_edges += g.num_edges
-    
-#     graph = data_list[index]
-#     node_num = graph.num_nodes
-#     edge_num = graph.num_edges
-#     node_att_o = node_attention[1][total_nodes:total_nodes+node_num]
-#     edge_att_o = edge_attention[1][total_edges:total_edges+edge_num]
-#     edge_color = edge_att_o.tolist()
-#     node_color = node_att_o.tolist()
-#     G = to_networkx(graph)
-#     plt.figure(figsize=(7, 7))
-#     plt.axis('off')
-#     options = {"edgecolors": "tab:grey", "alpha": 1.0}
-#     # pdb.set_trace()
-#     nx.draw(G, pos=nx.kamada_kawai_layout(G),
-#                cmap="Blues",
-#                node_color=node_color,
-#                edge_color="grey",
-#                width=edge_color,
-#                node_size=200, 
-#                arrows=False,
-#                **options)
-    
-#     plt.tight_layout()
-#     plt.savefig("causal-vis-{}.png".format(index))
-#     plt.close()
-
 
 class CausalGAT(torch.nn.Module):
     def __init__(self, num_features,
@@ -562,9 +410,7 @@ class CausalGAT(torch.nn.Module):
         xc_logis = self.context_readout_layer(xc)
         xo_logis = self.objects_readout_layer(xo)
         xco_logis = self.random_readout_layer(xc, xo, eval_random=eval_random)
-
         return xc_logis, xo_logis, xco_logis
-
 
     def context_readout_layer(self, x):
         
@@ -606,3 +452,186 @@ class CausalGAT(torch.nn.Module):
         x = self.fc2_co(x)
         x_logis = F.log_softmax(x, dim=-1)
         return x_logis
+
+class GCNNet(torch.nn.Module):
+    """GCN with BN and residual connection."""
+    def __init__(self, num_features,
+                       num_classes, hidden, 
+                       num_feat_layers=1, 
+                       num_conv_layers=3,
+                 num_fc_layers=2, gfn=False, collapse=False, residual=False,
+                 res_branch="BNConvReLU", global_pool="sum", dropout=0, 
+                 edge_norm=True):
+        super(GCNNet, self).__init__()
+
+        self.global_pool = global_add_pool
+        self.dropout = dropout
+        GConv = partial(GCNConv, edge_norm=edge_norm, gfn=gfn)
+
+        hidden_in = num_features
+        self.bn_feat = BatchNorm1d(hidden_in)
+        self.conv_feat = GCNConv(hidden_in, hidden, gfn=True) # linear transform
+        self.bns_conv = torch.nn.ModuleList()
+        self.convs = torch.nn.ModuleList()
+
+        for i in range(num_conv_layers):
+            self.bns_conv.append(BatchNorm1d(hidden))
+            self.convs.append(GConv(hidden, hidden))
+        self.bn_hidden = BatchNorm1d(hidden)
+        self.bns_fc = torch.nn.ModuleList()
+        self.lins = torch.nn.ModuleList()
+
+        for i in range(num_fc_layers - 1):
+            self.bns_fc.append(BatchNorm1d(hidden))
+            self.lins.append(Linear(hidden, hidden))
+        self.lin_class = Linear(hidden, num_classes)
+
+        # BN initialization.
+        for m in self.modules():
+            if isinstance(m, (torch.nn.BatchNorm1d)):
+                torch.nn.init.constant_(m.weight, 1)
+                torch.nn.init.constant_(m.bias, 0.0001)
+
+    def forward(self, data):
+        
+        x = data.x if data.x is not None else data.feat
+        edge_index, batch = data.edge_index, data.batch
+        
+        x = self.bn_feat(x)
+        x = F.relu(self.conv_feat(x, edge_index))
+        
+        for i, conv in enumerate(self.convs):
+            x = self.bns_conv[i](x)
+            x = F.relu(conv(x, edge_index))
+            
+        x = self.global_pool(x, batch)
+        for i, lin in enumerate(self.lins):
+            x = self.bns_fc[i](x)
+            x = F.relu(lin(x))
+
+        x = self.bn_hidden(x)
+        x = self.lin_class(x)
+        return F.log_softmax(x, dim=-1)
+
+class GINNet(torch.nn.Module):
+    def __init__(self, num_features,
+                       num_classes,
+                       hidden, 
+                       num_fc_layers=2, 
+                       num_conv_layers=3, 
+                       dropout=0):
+
+        super(GINNet, self).__init__()
+        self.global_pool = global_add_pool
+        self.dropout = dropout
+        hidden_in = num_features
+        hidden_out = num_classes
+        
+        self.bn_feat = BatchNorm1d(hidden_in)
+        self.conv_feat = GCNConv(hidden_in, hidden, gfn=True) # linear transform
+        
+        self.convs = torch.nn.ModuleList()
+        for i in range(num_conv_layers):
+            self.convs.append(GINConv(
+            Sequential(Linear(hidden, hidden), 
+                       BatchNorm1d(hidden), 
+                       ReLU(),
+                       Linear(hidden, hidden), 
+                       ReLU())))
+
+        self.bn_hidden = BatchNorm1d(hidden)
+        self.bns_fc = torch.nn.ModuleList()
+        self.lins = torch.nn.ModuleList()
+
+        for i in range(num_fc_layers - 1):
+            self.bns_fc.append(BatchNorm1d(hidden))
+            self.lins.append(Linear(hidden, hidden))
+        self.lin_class = Linear(hidden, hidden_out)
+
+        # BN initialization.
+        for m in self.modules():
+            if isinstance(m, (torch.nn.BatchNorm1d)):
+                torch.nn.init.constant_(m.weight, 1)
+                torch.nn.init.constant_(m.bias, 0.0001)
+
+    def forward(self, data):
+        x = data.x if data.x is not None else data.feat
+        edge_index, batch = data.edge_index, data.batch
+        # x, edge_index, batch = data.feat, data.edge_index, data.batch
+        x = self.bn_feat(x)
+        x = F.relu(self.conv_feat(x, edge_index))
+        
+        for i, conv in enumerate(self.convs):
+            x = conv(x, edge_index)
+            
+        x = self.global_pool(x, batch)
+        for i, lin in enumerate(self.lins):
+            x = self.bns_fc[i](x)
+            x = F.relu(lin(x))    
+        x = self.bn_hidden(x)
+        x = self.lin_class(x)
+
+        prediction = F.log_softmax(x, dim=-1)
+        return prediction
+
+class GATNet(torch.nn.Module):
+    def __init__(self, num_features, 
+                       num_classes,
+                       hidden,
+                       head=4,
+                       num_fc_layers=2, 
+                       num_conv_layers=3, 
+                       dropout=0.2):
+
+        super(GATNet, self).__init__()
+
+        self.global_pool = global_add_pool
+        self.dropout = dropout
+        hidden_in = num_features
+        hidden_out = num_classes
+   
+        self.bn_feat = BatchNorm1d(hidden_in)
+        self.conv_feat = GCNConv(hidden_in, hidden, gfn=True) # linear transform
+        self.bns_conv = torch.nn.ModuleList()
+        self.convs = torch.nn.ModuleList()
+
+        for i in range(num_conv_layers):
+            self.bns_conv.append(BatchNorm1d(hidden))
+            self.convs.append(GATConv(hidden, int(hidden / head), heads=head, dropout=dropout))
+        self.bn_hidden = BatchNorm1d(hidden)
+        self.bns_fc = torch.nn.ModuleList()
+        self.lins = torch.nn.ModuleList()
+
+        for i in range(num_fc_layers - 1):
+            self.bns_fc.append(BatchNorm1d(hidden))
+            self.lins.append(Linear(hidden, hidden))
+        self.lin_class = Linear(hidden, hidden_out)
+
+        # BN initialization.
+        for m in self.modules():
+            if isinstance(m, (torch.nn.BatchNorm1d)):
+                torch.nn.init.constant_(m.weight, 1)
+                torch.nn.init.constant_(m.bias, 0.0001)
+
+    def forward(self, data):
+        
+        x = data.x if data.x is not None else data.feat
+        edge_index, batch = data.edge_index, data.batch
+        
+        x = self.bn_feat(x)
+        x = F.relu(self.conv_feat(x, edge_index))
+        
+        for i, conv in enumerate(self.convs):
+            x = self.bns_conv[i](x)
+            x = F.relu(conv(x, edge_index))
+
+        x = self.global_pool(x, batch)
+        for i, lin in enumerate(self.lins):
+            x = self.bns_fc[i](x)
+            x = F.relu(lin(x))
+
+        x = self.bn_hidden(x)
+        if self.dropout > 0:
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.lin_class(x)
+        return F.log_softmax(x, dim=-1)
