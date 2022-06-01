@@ -35,7 +35,7 @@ lr=0.002
 min=5e-6
 b=0.9
 model=CausalGCN
-python main.py --bias $b --lr $lr --min_lr $min --model $model 
+python main_syn.py --bias $b --lr $lr --min_lr $min --model $model 
 ```
 ## For TU datasets
 
