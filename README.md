@@ -13,6 +13,11 @@ In this work, we take a causal look at the GNN modeling for graph classification
 
 ## Dependencies
 
+<<<<<<< HEAD
+=======
+## Dependencies
+
+>>>>>>> 92a6752c95930e802ade10771acd53f6860ab7d1
 Please setup the environment following Requirements in this [repository](https://github.com/chentingpc/gfn#requirements).
 Typically, you might need to run the following commands:
 ```
@@ -24,6 +29,10 @@ pip install torch-spline-conv==1.1.0 -f https://pytorch-geometric.com/whl/torch-
 pip install torch-geometric==1.1.0
 pip install torch-vision==0.5.0
 ```
+<<<<<<< HEAD
+=======
+
+>>>>>>> 92a6752c95930e802ade10771acd53f6860ab7d1
 
 ## Experiments
 
@@ -33,7 +42,7 @@ lr=0.002
 min=5e-6
 b=0.9
 model=CausalGCN
-python main.py --bias $b --lr $lr --min_lr $min --model $model 
+python main_syn.py --bias $b --lr $lr --min_lr $min --model $model 
 ```
 ## For TU datasets
 
