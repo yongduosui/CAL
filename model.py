@@ -262,14 +262,9 @@ class CausalGIN(torch.nn.Module):
         xc_logis = self.context_readout_layer(xc)
         xco_logis = self.random_readout_layer(xc, xo, eval_random=eval_random)
         # return xc_logis, xo_logis, xco_logis
-        if train_type == "base":
-            xo_logis = self.objects_readout_layer(xo, train_type)
-            return xc_logis, xo_logis, xco_logis
-        elif train_type == "irm":
-            xo_before, xo_logis = self.objects_readout_layer(xo, train_type)
-            return xc_logis, xo_before, xo_logis, xco_logis
-        else:
-            assert False
+        xo_logis = self.objects_readout_layer(xo, train_type)
+        return xc_logis, xo_logis, xco_logis
+        
 
 
     def context_readout_layer(self, x):
