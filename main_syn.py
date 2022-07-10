@@ -1,5 +1,5 @@
-from train import train_baseline
-from train_causal import train_causal
+from train import train_baseline_syn
+from train_causal import train_causal_syn
 from opts import setup_seed
 import torch
 import opts
