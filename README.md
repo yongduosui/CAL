@@ -33,8 +33,8 @@ pip install torch-vision==0.5.0
 ### For Synthetic datasets
 ```
 lr=0.002
-min=5e-6
 b=0.9
+min=5e-6
 model=CausalGCN
 python main_syn.py --bias $b --lr $lr --min_lr $min --model $model 
 ```
