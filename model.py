@@ -8,6 +8,7 @@ from gcn_conv import GCNConv
 import random
 import pdb
 
+
 class CausalGCN(torch.nn.Module):
     """GCN with BN and residual connection."""
     def __init__(self, num_features,
