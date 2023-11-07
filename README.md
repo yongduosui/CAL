@@ -3,7 +3,7 @@ PyTorch implementation for Causal Attention for Interpretable and Generalizable 
 
 YongduoSui, Xiang Wang, Jiancan Wu, Min Lin, Xiangnan He, Tat-Seng Chua
 
-In KDD 2022.
+In KDD 2022: https://dl.acm.org/doi/abs/10.1145/3534678.3539366
 
 
 
@@ -45,3 +45,14 @@ python main_syn.py --bias $b --lr $lr --min_lr $min --model $model
 ## Acknowledgements
 
 The backbone implementation is reference to [https://github.com/chentingpc/gfn](https://github.com/chentingpc/gfn).
+
+## Citation
+If you use our codes or checkpoints, please cite our paper:
+```
+@inproceedings{sui2022causal,
+  title={Causal Attention for Interpretable and Generalizable Graph Classification},
+  author={Sui, Yongduo and Wang, Xiang and Wu, Jiancan and Lin, Min and He, Xiangnan and Chua, Tat-Seng},
+  booktitle={KDD},
+  year={2022}
+}
+```
