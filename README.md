@@ -1,7 +1,7 @@
 # Causal Attention for Interpretable and Generalizable Graph Classification
 PyTorch implementation for Causal Attention for Interpretable and Generalizable Graph Classification
 
-YongduoSui, Xiang Wang, Jiancan Wu, Min Lin, Xiangnan He, Tat-Seng Chua
+Yongduo Sui, Xiang Wang, Jiancan Wu, Min Lin, Xiangnan He, Tat-Seng Chua
 
 In KDD 2022: https://dl.acm.org/doi/abs/10.1145/3534678.3539366
 
